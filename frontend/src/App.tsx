@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import Converter from "./pages/Converter";
-import Transactions from "./pages/Transactions";
 import Layout from "./components/Layout";
+import Transactions from "./pages/Transactions";
 
 const App = () => {
   return (
