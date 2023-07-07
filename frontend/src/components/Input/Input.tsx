@@ -1,32 +1,75 @@
 import React, { useEffect, useState } from "react";
 import { CurrencyOption, currencyOptions } from "../../utils/constants";
 import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
+import { useAppDispatch, useAppSelector } from "../../redux/hooks";
+import {
+  getConvertFormState,
+  setConvertFee,
+  setFromAmount,
+  setFromCurrency,
+  setToAmount,
+  setToCurrency,
+} from "../../redux/reducers/convertFormSlice";
+import { convertCalculates, invertCalculates } from "../../utils/calculations";
 
 interface IProps {
   type: "From" | "To";
-  setParentCurrency: React.Dispatch<React.SetStateAction<CurrencyOption>>;
-  setParentAmount: React.Dispatch<React.SetStateAction<number>>;
-  parentAmount: number;
 }
 
-const Input = ({ type,setParentCurrency,setParentAmount,parentAmount }: IProps) => {
-  console.log("parentAmount", parentAmount);
-  const [currency, setCurrency] = useState<string>("AUD");
-  const [amount, setAmount] = useState<number>(parentAmount);
-  const handleCurrencyChange = (e: SelectChangeEvent<string>) => {
-    setCurrency(e.target.value);
-    setParentCurrency(e.target.value as CurrencyOption);
+const Input = ({ type }: IProps) => {
+  const dispatch = useAppDispatch();
+  // local state inital value from redux store
+  const { convertForm } = useAppSelector(getConvertFormState);
+  const { from, srcAmount, to, resAmount, convertRates } = convertForm;
+  const inputCurrency = type === "From" ? from : to;
+  const inputAmount = type === "From" ? srcAmount : resAmount;
+
+  // local state
+  const [currency, setCurrency] = useState<CurrencyOption>(inputCurrency);
+  const [amount, setAmount] = useState<number>(inputAmount);
+
+  const handleCurrencyChange = (e: SelectChangeEvent<CurrencyOption>) => {
+    const selectedCurrency = e.target.value as CurrencyOption;
+    // update redux state AND update local state
+    if (type === "From") {
+      dispatch(setFromCurrency(selectedCurrency));
+    }
+    if (type === "To") {
+      dispatch(setToCurrency(selectedCurrency));
+    }
+    setCurrency(selectedCurrency);
   };
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAmount = parseFloat(parseFloat(e.target.value).toFixed(2));
     // console.log(newAmount);
-    setAmount(newAmount);
-    setParentAmount(newAmount);
+    if (!convertRates) return;
+    const marketRate = convertRates[to];
+    if (type === "From") {
+      dispatch(setFromAmount(newAmount));
+      const res = convertCalculates(marketRate, newAmount);
+      const { targetAmount, fee } = res;
+      dispatch(setToAmount(targetAmount));
+      dispatch(setConvertFee(fee));
+    }
+    if (type === "To") {
+      dispatch(setToAmount(newAmount));
+      const res = invertCalculates(marketRate, newAmount);
+      const { sourceAmount, fee } = res;
+      dispatch(setFromAmount(sourceAmount));
+      dispatch(setConvertFee(fee));
+    }
   };
 
+  // useEffect to get the input value subscribed from redux store
   useEffect(() => {
-    setAmount(parentAmount);
-  }, [parentAmount]);
+    if (type === "From") {
+      setAmount(srcAmount);
+    }
+    if (type === "To") {
+      setAmount(resAmount);
+    }
+  }, [srcAmount, resAmount, type]);
 
   return (
     <FormControl sx={{ width: "100%", display: "flex", flexDirection: "row" }}>
@@ -52,7 +95,3 @@ const Input = ({ type,setParentCurrency,setParentAmount,parentAmount }: IProps) 
 };
 
 export default Input;
-
-// Input.defaultProps = {
-//   setParentState: null,
-// };

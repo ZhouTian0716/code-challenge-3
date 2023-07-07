@@ -1,42 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Box, Container, Typography } from "@mui/material";
 import logo from "../assets/converter-icon.png";
 import swapIcon from "../assets/converter-swap-icon.png";
 import Input from "../components/Input/Input";
-import { CurrencyOption } from "../utils/constants";
+import { getConvertFormState, setConvertFee, setConvertRates, setToAmount } from "../redux/reducers/convertFormSlice";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { useGetConvertRatesQuery } from "../redux/api/convertApiSlice";
 
 const Converter = () => {
-  const [selectedSrc, setSelectedSrc] = useState<CurrencyOption>("AUD");
-  const [srcAmount, setSrcAmount] = useState(0);
-  const [selectedTarget, setSelectedTarget] = useState<CurrencyOption>("AUD");
-  const [targetAmount, setTargetAmount] = useState(0);
-  const [convertFee, setConvertFee] = useState(0);
-  const { data: rates, isLoading, isSuccess, isError, error } = useGetConvertRatesQuery(selectedSrc);
+  const { convertForm } = useAppSelector(getConvertFormState);
+  const { from, srcAmount, to, resAmount, convertFee, convertRate } = convertForm;
 
-  const convertCalculates = (marketRate: number, sourceAmount: number) => {
-    const markupRate = 0.01;
-    const convertedAmount = sourceAmount * marketRate;
-    const targetAmount = convertedAmount / (1 + markupRate);
-    const fee = convertedAmount - targetAmount;
-    return {
-      targetAmount: parseFloat(targetAmount.toFixed(2)),
-      fee: parseFloat(fee.toFixed(2)),
-    };
-  };
+  const dispatch = useAppDispatch();
+
+  const { data: rates, isLoading, isSuccess, isError, error } = useGetConvertRatesQuery(from);
+
 
   useEffect(() => {
-    if (!rates) return;
-    const marketRate = rates[selectedTarget];
-    const res = convertCalculates(marketRate, srcAmount);
-    console.log("cal res", res);
-    setTargetAmount(res.targetAmount);
-    setConvertFee(res.fee);
-  }, [rates, srcAmount, selectedTarget]);
+    console.log("isSuccess", isSuccess);
+    isSuccess && dispatch(setConvertRates(rates));
+  }, [isSuccess, dispatch, rates]);
 
   // calculates
   const handleSubmit = () => {
-    console.log("rates", rates);
+    console.log("rates", convertForm);
   };
 
   return (
@@ -58,20 +45,20 @@ const Converter = () => {
           Currency Transfer
         </Typography>
       </Box>
-      <Input type="From" setParentCurrency={setSelectedSrc} setParentAmount={setSrcAmount} parentAmount = {srcAmount}/>
-      <img src={swapIcon} alt="swapIcon" style={{ width: "30px", height: "30px" }} />
-      <Input type="To" setParentCurrency={setSelectedTarget} setParentAmount={setTargetAmount} parentAmount = {targetAmount}/>
+      <Input type="From" />
+      <img src={swapIcon} alt="swapIcon" style={{ width: "30px", height: "30px"}} />
+      <Input type="To" />
       <div className="flex-col gap-1">
         <p>
           <small>Market Rate:</small>
+          {isLoading && <span>Loading...</span>}
           {isError && <span>{JSON.stringify(error)}</span>}
-          {isLoading && <span>Loading</span>}
-          {isSuccess && <span>{rates[selectedTarget].toFixed(5)}</span>}
+          {isSuccess && <span>{rates[to].toFixed(5)}</span>}
         </p>
         <p>
           <small>Fee:</small>
           <span>
-            {convertFee} {selectedTarget}
+            {convertFee} {to}
           </span>
         </p>
       </div>
