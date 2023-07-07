@@ -2,12 +2,20 @@ import axios from "axios";
 
 export interface ITransaction {
   id: number;
+  createdAt: string;
   sourceCurrency: string;
   targetCurrency: string;
   sourceAmount: number;
   targetAmount: number;
   fee: number;
-  createdAt: string;
+}
+
+export interface ICreateTransaction {
+  sourceCurrency: string;
+  targetCurrency: string;
+  sourceAmount: number;
+  targetAmount: number;
+  fee: number;
 }
 
 const baseUrl = "http://localhost:3333";

@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { ITransaction } from "../../api/transactions";
+import { ICreateTransaction, ITransaction } from "../../api/transactions";
 import { CurrencyOption, Rates } from "../../utils/constants";
 
 const apiUrl = import.meta.env.VITE_BACKEND_SERVER_API;
@@ -17,7 +17,15 @@ export const convertApiSlice = createApi({
       query: (srcISOCode) => `/rates/${srcISOCode}`,
       providesTags: ["Rates"],
     }),
+    addTransaction: builder.mutation<ITransaction, Partial<ICreateTransaction>>({
+      query: (transaction) => ({
+        url: "/transactions",
+        method: "POST",
+        body: transaction,
+        invalidatesTags: ["Transactions"],
+      }),
+    }),
   }),
 });
 
-export const { useGetTransactionsQuery, useGetConvertRatesQuery } = convertApiSlice;
+export const { useGetTransactionsQuery, useGetConvertRatesQuery, useAddTransactionMutation } = convertApiSlice;

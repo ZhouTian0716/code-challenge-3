@@ -13,46 +13,51 @@ import {
 import { convertCalculates, invertCalculates } from "../../utils/calculations";
 
 interface IProps {
-  type: "From" | "To";
+  inputType: "From" | "To";
 }
 
-const Input = ({ type }: IProps) => {
+const Input = ({ inputType }: IProps) => {
+
   const dispatch = useAppDispatch();
   // local state inital value from redux store
   const { convertForm } = useAppSelector(getConvertFormState);
   const { from, srcAmount, to, resAmount, convertRates } = convertForm;
-  const inputCurrency = type === "From" ? from : to;
-  const inputAmount = type === "From" ? srcAmount : resAmount;
+  const inputCurrency = inputType === "From" ? from : to;
+  const inputAmount = inputType === "From" ? srcAmount : resAmount;
 
-  // local state
+  // Input values local state for display
   const [currency, setCurrency] = useState<CurrencyOption>(inputCurrency);
   const [amount, setAmount] = useState<number>(inputAmount);
 
+  // ZT-NOTE: This function is triggering convert or invert calculations
   const handleCurrencyChange = (e: SelectChangeEvent<CurrencyOption>) => {
     const selectedCurrency = e.target.value as CurrencyOption;
     // update redux state AND update local state
-    if (type === "From") {
+    if (inputType === "From") {
       dispatch(setFromCurrency(selectedCurrency));
     }
-    if (type === "To") {
+    if (inputType === "To") {
       dispatch(setToCurrency(selectedCurrency));
     }
     setCurrency(selectedCurrency);
   };
 
+  // ZT-NOTE: This function is triggering convert or invert calculations
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newAmount = parseFloat(parseFloat(e.target.value).toFixed(2));
-    // console.log(newAmount);
-    if (!convertRates) return;
+    if (!convertRates) {
+      console.log("convertRates is not ready");
+      return;
+    }
     const marketRate = convertRates[to];
-    if (type === "From") {
+    if (inputType === "From") {
       dispatch(setFromAmount(newAmount));
       const res = convertCalculates(marketRate, newAmount);
       const { targetAmount, fee } = res;
       dispatch(setToAmount(targetAmount));
       dispatch(setConvertFee(fee));
     }
-    if (type === "To") {
+    if (inputType === "To") {
       dispatch(setToAmount(newAmount));
       const res = invertCalculates(marketRate, newAmount);
       const { sourceAmount, fee } = res;
@@ -63,22 +68,22 @@ const Input = ({ type }: IProps) => {
 
   // useEffect to get the input value subscribed from redux store
   useEffect(() => {
-    if (type === "From") {
+    if (inputType === "From") {
       setAmount(srcAmount);
     }
-    if (type === "To") {
+    if (inputType === "To") {
       setAmount(resAmount);
     }
-  }, [srcAmount, resAmount, type]);
+  }, [srcAmount, resAmount,inputType]);
 
   return (
     <FormControl sx={{ width: "100%", display: "flex", flexDirection: "row" }}>
-      <InputLabel id={`${type}-select-label`}>{type}</InputLabel>
+      <InputLabel id={`${inputType}-select-label`}>{inputType}</InputLabel>
       <Select
-        labelId={`${type}-select-label`}
-        id={`${type}-select`}
+        labelId={`${inputType}-select-label`}
+        id={`${inputType}-select`}
         value={currency}
-        label={type}
+        label={inputType}
         onChange={handleCurrencyChange}
         MenuProps={{ PaperProps: { sx: { maxHeight: 100 } } }}
         sx={{ width: "50%", bgcolor: "#fff" }}

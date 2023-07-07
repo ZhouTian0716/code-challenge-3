@@ -3,27 +3,34 @@ import { Box, Container, Typography } from "@mui/material";
 import logo from "../assets/converter-icon.png";
 import swapIcon from "../assets/converter-swap-icon.png";
 import Input from "../components/Input/Input";
-import { getConvertFormState, setConvertFee, setConvertRates, setToAmount } from "../redux/reducers/convertFormSlice";
+import { getConvertFormState, setConvertRates } from "../redux/reducers/convertFormSlice";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { useGetConvertRatesQuery } from "../redux/api/convertApiSlice";
+import { useAddTransactionMutation, useGetConvertRatesQuery } from "../redux/api/convertApiSlice";
 
 const Converter = () => {
   const { convertForm } = useAppSelector(getConvertFormState);
-  const { from, srcAmount, to, resAmount, convertFee, convertRate } = convertForm;
+  const { from, srcAmount, to, resAmount, convertFee, convertRates } = convertForm;
 
   const dispatch = useAppDispatch();
 
   const { data: rates, isLoading, isSuccess, isError, error } = useGetConvertRatesQuery(from);
-
+  const [addTransaction, { isLoading: isAdding }] = useAddTransactionMutation();
 
   useEffect(() => {
-    console.log("isSuccess", isSuccess);
     isSuccess && dispatch(setConvertRates(rates));
   }, [isSuccess, dispatch, rates]);
 
   // calculates
   const handleSubmit = () => {
-    console.log("rates", convertForm);
+    const submitPayload = {
+      sourceCurrency: from,
+      sourceAmount: srcAmount,
+      targetCurrency: to,
+      targetAmount: resAmount,
+      fee: convertFee,
+    };
+    console.log("data to submit", submitPayload);
+    addTransaction(submitPayload);
   };
 
   return (
@@ -45,15 +52,15 @@ const Converter = () => {
           Currency Transfer
         </Typography>
       </Box>
-      <Input type="From" />
-      <img src={swapIcon} alt="swapIcon" style={{ width: "30px", height: "30px"}} />
-      <Input type="To" />
+      <Input inputType="From" />
+      <img src={swapIcon} alt="swapIcon" style={{ width: "30px", height: "30px" }} />
+      <Input inputType="To" />
       <div className="flex-col gap-1">
         <p>
           <small>Market Rate:</small>
           {isLoading && <span>Loading...</span>}
           {isError && <span>{JSON.stringify(error)}</span>}
-          {isSuccess && <span>{rates[to].toFixed(5)}</span>}
+          {isSuccess && convertRates && <span>{convertRates[to].toFixed(5)}</span>}
         </p>
         <p>
           <small>Fee:</small>
@@ -63,8 +70,8 @@ const Converter = () => {
         </p>
       </div>
 
-      <button className="btn-submit" type="button" onClick={handleSubmit}>
-        Submit
+      <button className="btn-submit" type="button" onClick={handleSubmit} disabled={isAdding}>
+        {isAdding ? "Sending" : "Submit"}
       </button>
     </Container>
   );
