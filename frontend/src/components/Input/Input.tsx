@@ -1,23 +1,32 @@
-import React, { useState } from "react";
-import { currencyOptions } from "../../utils/constants";
+import React, { useEffect, useState } from "react";
+import { CurrencyOption, currencyOptions } from "../../utils/constants";
 import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 
 interface IProps {
   type: "From" | "To";
+  setParentCurrency: React.Dispatch<React.SetStateAction<CurrencyOption>>;
+  setParentAmount: React.Dispatch<React.SetStateAction<number>>;
+  parentAmount: number;
 }
 
-const Input = ({ type }: IProps) => {
+const Input = ({ type,setParentCurrency,setParentAmount,parentAmount }: IProps) => {
+  console.log("parentAmount", parentAmount);
   const [currency, setCurrency] = useState<string>("AUD");
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<number>(parentAmount);
   const handleCurrencyChange = (e: SelectChangeEvent<string>) => {
     setCurrency(e.target.value);
+    setParentCurrency(e.target.value as CurrencyOption);
   };
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    
-    const newAmount = parseFloat(parseFloat(e.target.value).toFixed(2))
-    console.log(newAmount);
+    const newAmount = parseFloat(parseFloat(e.target.value).toFixed(2));
+    // console.log(newAmount);
     setAmount(newAmount);
+    setParentAmount(newAmount);
   };
+
+  useEffect(() => {
+    setAmount(parentAmount);
+  }, [parentAmount]);
 
   return (
     <FormControl sx={{ width: "100%", display: "flex", flexDirection: "row" }}>
@@ -43,3 +52,7 @@ const Input = ({ type }: IProps) => {
 };
 
 export default Input;
+
+// Input.defaultProps = {
+//   setParentState: null,
+// };
