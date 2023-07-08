@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { CurrencyOption, currencyOptions } from "../../utils/constants";
+import React, { useCallback, useEffect, useState } from "react";
+import { CurrencyOption, Rates, currencyOptions } from "../../utils/constants";
 import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import {
@@ -17,22 +17,17 @@ interface IProps {
 }
 
 const Input = ({ inputType }: IProps) => {
-
   const dispatch = useAppDispatch();
-  // local state inital value from redux store
   const { convertForm } = useAppSelector(getConvertFormState);
   const { from, srcAmount, to, resAmount, convertRates } = convertForm;
   const inputCurrency = inputType === "From" ? from : to;
   const inputAmount = inputType === "From" ? srcAmount : resAmount;
 
-  // Input values local state for display
   const [currency, setCurrency] = useState<CurrencyOption>(inputCurrency);
   const [amount, setAmount] = useState<number>(inputAmount);
 
-  // ZT-NOTE: This function is triggering convert or invert calculations
   const handleCurrencyChange = (e: SelectChangeEvent<CurrencyOption>) => {
     const selectedCurrency = e.target.value as CurrencyOption;
-    // update redux state AND update local state
     if (inputType === "From") {
       dispatch(setFromCurrency(selectedCurrency));
     }
@@ -42,39 +37,52 @@ const Input = ({ inputType }: IProps) => {
     setCurrency(selectedCurrency);
   };
 
-  // ZT-NOTE: This function is triggering convert or invert calculations
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newAmount = parseFloat(parseFloat(e.target.value).toFixed(2));
-    if (!convertRates) {
-      console.log("convertRates is not ready");
-      return;
-    }
-    const marketRate = convertRates[to];
-    if (inputType === "From") {
-      dispatch(setFromAmount(newAmount));
-      const res = convertCalculates(marketRate, newAmount);
+  const recallConvert = useCallback(
+    (targetCurrency: CurrencyOption, sourceAmount: number, convertRates: Rates) => {
+      const marketRate = convertRates[targetCurrency];
+      const res = convertCalculates(marketRate, sourceAmount);
       const { targetAmount, fee } = res;
+      // this triggers the useEffect to update the resAmount
       dispatch(setToAmount(targetAmount));
       dispatch(setConvertFee(fee));
+    },
+    [dispatch]
+  );
+
+  useEffect(() => {
+    if (!convertRates) return;
+    // ⭐️ We want the convert result listen to changes to [to, convertRates, srcAmount]
+    recallConvert(to, srcAmount, convertRates);
+  }, [to, convertRates, srcAmount, dispatch, recallConvert]);
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAmount = parseFloat(e.target.value);
+    // ⭐️ Source amount change
+    if (inputType === "From") {
+      dispatch(setFromAmount(newAmount));
+      setAmount(newAmount);
     }
+    // ⭐️ Target amount change
     if (inputType === "To") {
-      dispatch(setToAmount(newAmount));
+      if (!convertRates) return;
+      const marketRate = convertRates[to];
       const res = invertCalculates(marketRate, newAmount);
       const { sourceAmount, fee } = res;
       dispatch(setFromAmount(sourceAmount));
       dispatch(setConvertFee(fee));
+      setAmount(newAmount);
     }
   };
 
   // useEffect to get the input value subscribed from redux store
   useEffect(() => {
-    if (inputType === "From") {
-      setAmount(srcAmount);
-    }
     if (inputType === "To") {
       setAmount(resAmount);
     }
-  }, [srcAmount, resAmount,inputType]);
+    if (inputType === "From") {
+      setAmount(srcAmount);
+    }
+  }, [resAmount, srcAmount, inputType]);
 
   return (
     <FormControl sx={{ width: "100%", display: "flex", flexDirection: "row" }}>

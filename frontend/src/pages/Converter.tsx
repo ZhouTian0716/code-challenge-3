@@ -10,7 +10,7 @@ import { useAddTransactionMutation, useGetConvertRatesQuery } from "../redux/api
 const Converter = () => {
   const { convertForm } = useAppSelector(getConvertFormState);
   const { from, srcAmount, to, resAmount, convertFee, convertRates } = convertForm;
-
+ 
   const dispatch = useAppDispatch();
 
   const { data: rates, isLoading, isSuccess, isError, error } = useGetConvertRatesQuery(from);
@@ -65,7 +65,7 @@ const Converter = () => {
         <p>
           <small>Fee:</small>
           <span>
-            {convertFee} {to}
+           {convertFee > 0 && `${convertFee} ${to}`} 
           </span>
         </p>
       </div>
